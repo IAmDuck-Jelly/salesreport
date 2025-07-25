@@ -1,0 +1,207 @@
+-- SQL Script to Create the New Sales Activity Database Schema
+
+-- Set timeouts to 0 to prevent issues with long-running schema creation on large databases.
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+
+-- WARNING:
+-- This script is designed to create the tables.
+-- ALWAYS BACK UP YOUR DATABASE AND TEST IN A STAGING ENVIRONMENT BEFORE APPLYING TO PRODUCTION.
+
+-- Create Sequences for SERIAL columns (if not implicitly handled by SERIAL)
+-- PostgreSQL's SERIAL type automatically creates and uses a sequence.
+-- If you were using GENERATED ALWAYS AS IDENTITY, sequences are also handled.
+-- For clarity, explicit sequence creation can be added if needed for specific scenarios,
+-- but for standard SERIAL, it's often not required to list them separately.
+
+-- Table: public.brand
+CREATE TABLE public.brand (
+  brand text NOT NULL,
+  CONSTRAINT brand_pkey PRIMARY KEY (brand)
+);
+
+-- Table: public.brand_channel
+CREATE TABLE public.brand_channel (
+  brand_cc text NOT NULL,
+  CONSTRAINT brand_channel_pkey PRIMARY KEY (brand_cc)
+);
+
+-- Table: public.category
+CREATE TABLE public.category (
+  category text NOT NULL,
+  parent_category text,
+  CONSTRAINT category_pkey PRIMARY KEY (category),
+  CONSTRAINT category_parent_category_fkey FOREIGN KEY (parent_category) REFERENCES public.category(category)
+);
+
+-- Table: public.customer
+-- Using SERIAL for auto-generation of 'code' for new customers
+CREATE TABLE public.customer (
+  code SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+  name text NOT NULL,
+  email text NOT NULL,
+  address text
+  -- CONSTRAINT customer_pkey PRIMARY KEY (code) -- SERIAL implies PRIMARY KEY
+);
+
+-- Table: public.monthly_targets
+CREATE TABLE public.monthly_targets (
+  revenue_channel text NOT NULL,
+  year integer NOT NULL,
+  month integer NOT NULL,
+  target_amount numeric NOT NULL,
+  id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+  -- CONSTRAINT monthly_targets_pkey PRIMARY KEY (id) -- SERIAL implies PRIMARY KEY
+);
+
+-- Table: public.rev_channel (Modified: Column name 'rev_channel' renamed to 'name')
+CREATE TABLE public.rev_channel (
+  name text NOT NULL, -- Renamed from 'rev_channel' to 'name' for consistency
+  CONSTRAINT rev_channel_pkey PRIMARY KEY (name)
+);
+
+-- Table: public.sales_channel
+CREATE TABLE public.sales_channel (
+  channel text NOT NULL,
+  rev_group text,
+  CONSTRAINT sales_channel_pkey PRIMARY KEY (channel),
+  CONSTRAINT sales_channel_rev_group_fkey FOREIGN KEY (rev_group) REFERENCES public.rev_channel(name)
+);
+
+-- Table: public.order (Modified: Monetary types, added audit columns)
+CREATE TABLE public.order (
+  order_id text NOT NULL,
+  status text NOT NULL,
+  payment_status text NOT NULL,
+  prevat NUMERIC(18, 4) NOT NULL, -- Changed to NUMERIC for precision
+  vat NUMERIC(18, 4) NOT NULL,    -- Changed to NUMERIC for precision
+  total_amount NUMERIC(18, 4) NOT NULL, -- Changed to NUMERIC for precision
+  customer_code integer,
+  sales_channel text,
+  order_date date NOT NULL,
+  created_at timestamp with time zone DEFAULT now(), -- Added for auditing
+  updated_at timestamp with time zone DEFAULT now(), -- Added for auditing
+  CONSTRAINT order_pkey PRIMARY KEY (order_id),
+  CONSTRAINT order_customer_code_fkey FOREIGN KEY (customer_code) REFERENCES public.customer(code),
+  CONSTRAINT order_sales_channel_fkey FOREIGN KEY (sales_channel) REFERENCES public.sales_channel(channel)
+);
+
+-- Table: public.product
+CREATE TABLE public.product (
+  sku text NOT NULL,
+  short_desc text,
+  full_description text,
+  stock integer NOT NULL DEFAULT 0,
+  category text,
+  brand text,
+  name text,
+  CONSTRAINT product_pkey PRIMARY KEY (sku),
+  CONSTRAINT product_category_fkey FOREIGN KEY (category) REFERENCES public.category(category),
+  CONSTRAINT product_brand_fkey FOREIGN KEY (brand) REFERENCES public.brand(brand)
+);
+
+-- Table: public.order_detail (Modified: Monetary types, added audit columns)
+CREATE TABLE public.order_detail (
+  order_id text NOT NULL,
+  product_sku text NOT NULL,
+  id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+  total_amount NUMERIC(18, 4) NOT NULL, -- Changed to NUMERIC for precision
+  pieces_order NUMERIC(18, 4) NOT NULL, -- Changed to NUMERIC for precision
+  created_at timestamp with time zone DEFAULT now(), -- Added for auditing
+  updated_at timestamp with time zone DEFAULT now(), -- Added for auditing
+  -- CONSTRAINT order_detail_pkey PRIMARY KEY (id) -- SERIAL implies PRIMARY KEY
+  CONSTRAINT order_detail_product_sku_fkey FOREIGN KEY (product_sku) REFERENCES public.product(sku),
+  CONSTRAINT order_detail_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.order(order_id)
+);
+
+-- Table: public.phone
+CREATE TABLE public.phone (
+  customer_code integer NOT NULL,
+  phone_number text NOT NULL,
+  id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+  -- CONSTRAINT phone_pkey PRIMARY KEY (id) -- SERIAL implies PRIMARY KEY
+  CONSTRAINT phone_customer_code_fkey FOREIGN KEY (customer_code) REFERENCES public.customer(code)
+);
+
+-- New Tables for Sales Daily Activity Tracking
+
+-- Table: public.sales_agents
+CREATE TABLE public.sales_agents (
+  id SERIAL PRIMARY KEY, -- Auto-incrementing ID for sales agents
+  name text NOT NULL,
+  employee_id text UNIQUE, -- Optional: for internal company employee IDs
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Table: public.customer_contacts
+CREATE TABLE public.customer_contacts (
+  id SERIAL PRIMARY KEY, -- Auto-incrementing ID for contacts
+  customer_code integer NOT NULL, -- Links to the customer (shop)
+  contact_name text NOT NULL,     -- Person's name
+  position text,                  -- Person's position/role
+  rating integer,                 -- Person's rating (e.g., 1-5, or NUMERIC if fractional)
+  phone_number text,              -- Optional: Specific phone number for this contact
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by_agent_id integer,    -- Who created this contact record
+  updated_by_agent_id integer,    -- Who last updated this contact record
+  CONSTRAINT fk_customer_code FOREIGN KEY (customer_code) REFERENCES public.customer(code),
+  CONSTRAINT fk_created_by_agent FOREIGN KEY (created_by_agent_id) REFERENCES public.sales_agents(id),
+  CONSTRAINT fk_updated_by_agent FOREIGN KEY (updated_by_agent_id) REFERENCES public.sales_agents(id)
+);
+
+-- Table: public.sales_daily_activities
+CREATE TABLE public.sales_daily_activities (
+  id SERIAL PRIMARY KEY,          -- Auto-incrementing ID for each activity
+  activity_date date NOT NULL DEFAULT now(), -- Date of the activity
+  sales_agent_id integer NOT NULL, -- Who performed the activity
+  customer_code integer NOT NULL, -- Which shop/customer was visited
+  shop_rating integer,            -- New field: Shop rating (e.g., 1-5, or NUMERIC if fractional)
+  line_added boolean NOT NULL DEFAULT FALSE, -- New field: Boolean for 'Line added' (y/n)
+  meeting_comment text,           -- New field: Comments about the meeting
+  latitude NUMERIC(10, 7),        -- New field: Latitude for location (e.g., 12.3456789)
+  longitude NUMERIC(10, 7),       -- New field: Longitude for location (e.g., 98.7654321)
+  created_at timestamp with time zone DEFAULT now(), -- When this activity record was created
+  updated_at timestamp with time zone DEFAULT now(), -- When this activity record was last updated
+  created_by_agent_id integer,    -- Who created this activity record (can be same as sales_agent_id)
+  updated_by_agent_id integer,    -- Who last updated this activity record
+  CONSTRAINT fk_activity_sales_agent FOREIGN KEY (sales_agent_id) REFERENCES public.sales_agents(id),
+  CONSTRAINT fk_activity_customer FOREIGN KEY (customer_code) REFERENCES public.customer(code),
+  CONSTRAINT fk_activity_created_by FOREIGN KEY (created_by_agent_id) REFERENCES public.sales_agents(id),
+  CONSTRAINT fk_activity_updated_by FOREIGN KEY (updated_by_agent_id) REFERENCES public.sales_agents(id)
+);
+
+-- New Tables for Website Product Information (linked to rev_channel)
+
+CREATE TABLE public.uptowntrading_product (
+  id SERIAL PRIMARY KEY, -- Unique ID for each entry, or composite key if (rev_channel, sku) is unique
+  rev_channel text NOT NULL, -- Which revenue channel this product belongs to
+  sku text NOT NULL,         -- Product SKU
+  price NUMERIC(18, 4) NOT NULL, -- Price of the product on this channel
+  status text NOT NULL,      -- Status of the product (e.g., 'active', 'inactive', 'out_of_stock')
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT fk_uptowntrading_product_rev_channel FOREIGN KEY (rev_channel) REFERENCES public.rev_channel(name),
+  CONSTRAINT fk_uptowntrading_product_product_sku FOREIGN KEY (sku) REFERENCES public.product(sku)
+  -- Optional: Add a unique constraint if a product can only appear once per rev_channel in this table
+  -- CONSTRAINT uq_website_product_1_rev_channel_sku UNIQUE (rev_channel, sku)
+);
+
+-- Table: public.website_product_2
+-- Represents product information for the second website/revenue channel.
+CREATE TABLE public.highsostore_product (
+  id SERIAL PRIMARY KEY, -- Unique ID for each entry, or composite key if (rev_channel, sku) is unique
+  rev_channel text NOT NULL, -- Which revenue channel this product belongs to
+  sku text NOT NULL,         -- Product SKU
+  price NUMERIC(18, 4) NOT NULL, -- Price of the product on this channel
+  status text NOT NULL,      -- Status of the product (e.g., 'active', 'inactive', 'out_of_stock')
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT fk_highsostore_product_rev_channel FOREIGN KEY (rev_channel) REFERENCES public.rev_channel(name),
+  CONSTRAINT fk_highsostore_product_product_sku FOREIGN KEY (sku) REFERENCES public.product(sku)
+  -- Optional: Add a unique constraint if a product can only appear once per rev_channel in this table
+  -- CONSTRAINT uq_website_product_2_rev_channel_sku UNIQUE (rev_channel, sku)
+);
