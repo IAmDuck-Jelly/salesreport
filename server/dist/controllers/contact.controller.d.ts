@@ -5,3 +5,9 @@ import { Request, Response, NextFunction } from 'express';
  * @access  Private
  */
 export declare const createCustomerContact: (req: Request, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;
+/**
+ * Update an existing customer contact record
+ * @route   PUT /api/contacts/update/:id
+ * @access  Private
+ */
+export declare const updateCustomerContact: (req: Request, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;

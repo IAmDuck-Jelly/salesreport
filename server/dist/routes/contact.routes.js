@@ -45,5 +45,45 @@ router.post('/create', [
         .isInt()
         .withMessage('Created by agent ID must be an integer')
 ], validateRequest_1.validateRequest, contact_controller_1.createCustomerContact);
+/**
+ * @route   PUT /api/contacts/update/:id
+ * @desc    Update an existing customer contact record
+ * @access  Private
+ */
+router.put('/update/:id', [
+    (0, express_validator_1.param)('id')
+        .notEmpty()
+        .withMessage('Contact ID is required')
+        .isInt()
+        .withMessage('Contact ID must be an integer'),
+    (0, express_validator_1.body)('customerCode')
+        .optional()
+        .isInt()
+        .withMessage('Customer code must be an integer'),
+    (0, express_validator_1.body)('contactName')
+        .optional()
+        .isString()
+        .withMessage('Contact name must be a string')
+        .trim(),
+    (0, express_validator_1.body)('position')
+        .optional()
+        .isString()
+        .withMessage('Position must be a string')
+        .trim(),
+    (0, express_validator_1.body)('rating')
+        .optional()
+        .isInt({ min: 1, max: 5 })
+        .withMessage('Rating must be between 1 and 5'),
+    (0, express_validator_1.body)('phoneNumber')
+        .optional()
+        .isString()
+        .withMessage('Phone number must be a string')
+        .trim(),
+    (0, express_validator_1.body)('updatedByAgentId')
+        .notEmpty()
+        .withMessage('Updated by agent ID is required')
+        .isInt()
+        .withMessage('Updated by agent ID must be an integer')
+], validateRequest_1.validateRequest, contact_controller_1.updateCustomerContact);
 exports.default = router;
 //# sourceMappingURL=contact.routes.js.map

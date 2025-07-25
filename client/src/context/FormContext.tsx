@@ -69,10 +69,10 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
   // Reset form when agent changes
   useEffect(() => {
     if (agent) {
-      setFormState(prev => ({
+      setFormState({
         ...initialFormState,
         salesAgentId: agent.id
-      }));
+      });
     } else {
       resetForm();
     }

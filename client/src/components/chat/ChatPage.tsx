@@ -9,7 +9,7 @@ import ContactForm from '../form/ContactForm';
 
 const ChatPage: React.FC = () => {
   const { messages } = useChat();
-  const { formState, currentStep, startForm } = useFormContext();
+  const { currentStep, startForm } = useFormContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Start the form when the component mounts

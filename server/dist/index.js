@@ -18,7 +18,7 @@ const phone_routes_1 = __importDefault(require("./routes/phone.routes"));
 dotenv_1.default.config();
 // Create Express app
 const app = (0, express_1.default)();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3002; // Changed from 3001 to 3002
 // Middleware
 app.use((0, cors_1.default)({
     origin: process.env.CORS_ORIGIN,
