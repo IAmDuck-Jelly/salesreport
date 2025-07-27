@@ -297,8 +297,12 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
     setFormState(prev => ({
       ...prev,
       customerCode: code,
-      customerName: name
+      customerName: name,
+      currentStep: prev.currentStep + 1
     }));
+    
+    // Add system message for the next step
+    addSystemMessage('How much would you rate this shop from 1-5 ?', 'number');
   };
 
   return (

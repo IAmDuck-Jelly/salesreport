@@ -52,7 +52,7 @@ const ShopAutocomplete: React.FC = () => {
     
     addUserMessage(customer.name);
     selectCustomer(customer.code, customer.name);
-    handleUserInput(customer.name);
+    // Removed handleUserInput call since selectCustomer now handles step advancement
   };
 
   const handleSubmit = (e: React.FormEvent) => {

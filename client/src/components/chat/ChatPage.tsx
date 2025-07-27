@@ -33,6 +33,16 @@ const ChatPage: React.FC = () => {
     switch (currentStep) {
       case 1: // Shop selection
         return <ShopAutocomplete />;
+      case 2: // Shop rating
+        return <InputArea />;
+      case 3: // Contact name
+      case 4: // Contact position
+      case 5: // Contact rating
+      case 6: // Phone number obtained
+      case 7: // Contact phone
+      case 8: // Line account added
+      case 9: // Meeting comments
+        return <InputArea />;
       case 10: // Submit report and capture location
         return <LocationCapture />;
       case 11: // Form submission in progress
@@ -41,11 +51,6 @@ const ChatPage: React.FC = () => {
             <p>Submitting your report...</p>
           </div>
         );
-      case 3: // Contact name
-      case 4: // Contact position
-      case 5: // Contact rating
-      case 7: // Contact phone
-        return <ContactForm />;
       default:
         return <InputArea />;
     }

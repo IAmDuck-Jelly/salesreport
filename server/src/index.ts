@@ -21,7 +21,8 @@ const port = process.env.PORT || 3002; // Changed from 3001 to 3002
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://salesteam-three.vercel.app'
+  'https://salesteam-three.vercel.app',
+  'https://salesreport.vercel.app'
 ];
 
 // Middleware
