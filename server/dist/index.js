@@ -23,7 +23,11 @@ const port = process.env.PORT || 3002; // Changed from 3001 to 3002
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://salesteam-three.vercel.app'
+    'http://192.168.1.37:5173',
+    'http://sreport.uptowntrading.co.th',
+    'https://sreport.uptowntrading.co.th',
+    'https://salesteam-three.vercel.app',
+    'https://salesreport.vercel.app'
 ];
 // Middleware
 app.use((0, cors_1.default)({

@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/validate`, { employeeId });
       
       if (response.data.success) {
+        console.log('Auth response agent data:', response.data.agent);
         setAgent(response.data.agent);
         localStorage.setItem('agent', JSON.stringify(response.data.agent));
         return true;

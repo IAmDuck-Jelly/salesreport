@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 /**
- * Create a new sales activity record
+ * Forward sales activity data to webhook
+ * @route   POST /api/activities/webhook
+ * @access  Private
+ */
+export declare const forwardToWebhook: (req: Request, res: Response, next: NextFunction) => Promise<void | Response<any, Record<string, any>>>;
+/**
+ * Create a new sales activity record (legacy - direct to Supabase)
  * @route   POST /api/activities/create
  * @access  Private
  */

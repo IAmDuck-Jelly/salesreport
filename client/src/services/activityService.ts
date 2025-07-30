@@ -24,6 +24,9 @@ interface SalesActivityData {
  */
 export const submitSalesActivity = async (activityData: SalesActivityData) => {
   try {
+    console.log('ActivityService: Making API call to:', `${API_BASE_URL}/activities/create`);
+    console.log('ActivityService: Data being sent:', activityData);
+    
     const response = await axios.post(
       `${API_BASE_URL}/activities/create`,
       activityData,
@@ -34,14 +37,22 @@ export const submitSalesActivity = async (activityData: SalesActivityData) => {
       }
     );
     
+    console.log('ActivityService: Response received:', response.data);
+    
     return {
       success: true,
       data: response.data,
     };
   } catch (error) {
-    console.error('Error submitting sales activity:', error);
+    console.error('ActivityService: Error submitting sales activity:', error);
     
     if (axios.isAxiosError(error)) {
+      console.error('ActivityService: Axios error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'An error occurred while submitting the activity',

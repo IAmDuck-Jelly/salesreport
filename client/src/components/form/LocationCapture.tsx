@@ -35,8 +35,11 @@ const LocationCapture: React.FC = () => {
         // Add system message
         addSystemMessage(`Location captured successfully: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
         
-        // Move to next step (step 11) to submit the form
-        handleUserInput('location_captured');
+        // Wait a moment for the state to update, then move to next step
+        setTimeout(() => {
+          console.log('LocationCapture: Calling handleUserInput with location_captured');
+          handleUserInput('location_captured');
+        }, 200);
       },
       (err) => {
         setIsLoading(false);

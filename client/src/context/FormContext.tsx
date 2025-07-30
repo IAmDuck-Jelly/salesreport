@@ -63,12 +63,14 @@ interface FormProviderProps {
 
 export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
   const [formState, setFormState] = useState<FormState>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { addSystemMessage, addErrorMessage, clearMessages } = useChat();
   const { agent } = useAuth();
 
   // Reset form when agent changes
   useEffect(() => {
     if (agent) {
+      console.log('Agent data in FormContext:', agent);
       setFormState({
         ...initialFormState,
         salesAgentId: agent.id
@@ -226,50 +228,79 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
         // This step is handled by the location capture component
         // The location will be captured when the user clicks the submit button
         // After location is captured, we move to step 11 to submit the form data
-        setFormState(prev => ({
-          ...prev,
-          currentStep: 11
-        }));
+        
+        // Prevent double submission
+        if (isSubmitting) {
+          console.log('Submission already in progress, skipping...');
+          return;
+        }
+        
+        console.log('Starting form submission process...');
+        setIsSubmitting(true);
+        
+        setFormState(prev => {
+          // Trigger the submission logic for step 11 with current state
+          setTimeout(() => {
+            // Prepare data for submission using the current state
+            const currentState = prev; // This will be the updated state
+            const activityData: any = {
+              salesAgentId: currentState.salesAgentId || 0,
+              customerCode: currentState.customerCode || 0,
+              lineAdded: currentState.lineAdded,
+              createdByAgentId: currentState.salesAgentId || 0
+            };
+            
+            // Add optional fields only if they have values
+            if (currentState.shopRating !== null) {
+              activityData.shopRating = currentState.shopRating;
+            }
+            
+            if (currentState.meetingComment) {
+              activityData.meetingComment = currentState.meetingComment;
+            }
+            
+            if (currentState.location.latitude !== null) {
+              activityData.latitude = currentState.location.latitude;
+            }
+            
+            if (currentState.location.longitude !== null) {
+              activityData.longitude = currentState.location.longitude;
+            }
+            
+            // Debug: Log the data being sent
+            console.log('Submitting activity data:', activityData);
+            console.log('Form state salesAgentId:', currentState.salesAgentId);
+            console.log('Location data:', currentState.location);
+            
+            // Submit data to server
+            submitSalesActivity(activityData).then(result => {
+              setIsSubmitting(false); // Reset submission flag
+              if (result.success) {
+                addSystemMessage('Report submitted successfully! Thank you for your submission.', 'text');
+                // Reset form after successful submission
+                setTimeout(() => {
+                  resetForm();
+                }, 3000);
+              } else {
+                addErrorMessage(`Error submitting report: ${result.error}`);
+              }
+            }).catch(error => {
+              setIsSubmitting(false); // Reset submission flag on error
+              console.error('Submission error:', error);
+              addErrorMessage('An unexpected error occurred during submission.');
+            });
+          }, 100); // Small delay to ensure state is updated
+          
+          return {
+            ...prev,
+            currentStep: 11
+          };
+        });
         break;
       
-      case 11: // Form completed and location captured, submit to server
-        // Prepare data for submission
-        const activityData: any = {
-          salesAgentId: formState.salesAgentId || 0,
-          customerCode: formState.customerCode || 0,
-          lineAdded: formState.lineAdded,
-          createdByAgentId: formState.salesAgentId || 0
-        };
-        
-        // Add optional fields only if they have values
-        if (formState.shopRating !== null) {
-          activityData.shopRating = formState.shopRating;
-        }
-        
-        if (formState.meetingComment) {
-          activityData.meetingComment = formState.meetingComment;
-        }
-        
-        if (formState.location.latitude !== null) {
-          activityData.latitude = formState.location.latitude;
-        }
-        
-        if (formState.location.longitude !== null) {
-          activityData.longitude = formState.location.longitude;
-        }
-        
-        // Submit data to server
-        submitSalesActivity(activityData).then(result => {
-          if (result.success) {
-            addSystemMessage('Report submitted successfully! Thank you for your submission.', 'text');
-            // Reset form after successful submission
-            setTimeout(() => {
-              resetForm();
-            }, 3000);
-          } else {
-            addErrorMessage(`Error submitting report: ${result.error}`);
-          }
-        });
+      case 11: // Form submission in progress (handled by ChatPage UI)
+        // This step is just for showing the "Submitting..." message
+        // The actual submission happens in case 10
         break;
       
       default:
@@ -279,18 +310,24 @@ export const FormProvider: React.FC<FormProviderProps> = ({ children }) => {
 
   const resetForm = () => {
     setFormState(initialFormState);
+    setIsSubmitting(false);
     clearMessages();
   };
 
   const captureLocation = (latitude: number, longitude: number) => {
-    setFormState(prev => ({
-      ...prev,
-      location: {
-        latitude,
-        longitude,
-        captured: true
-      }
-    }));
+    console.log('CaptureLocation called with:', { latitude, longitude });
+    setFormState(prev => {
+      const newState = {
+        ...prev,
+        location: {
+          latitude,
+          longitude,
+          captured: true
+        }
+      };
+      console.log('Updated form state with location:', newState.location);
+      return newState;
+    });
   };
 
   const selectCustomer = (code: number, name: string) => {

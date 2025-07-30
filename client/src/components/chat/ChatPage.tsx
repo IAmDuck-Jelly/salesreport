@@ -5,7 +5,6 @@ import MessageBubble from './MessageBubble';
 import InputArea from './InputArea';
 import ShopAutocomplete from '../form/ShopAutocomplete';
 import LocationCapture from '../form/LocationCapture';
-import ContactForm from '../form/ContactForm';
 
 const ChatPage: React.FC = () => {
   const { messages } = useChat();
