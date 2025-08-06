@@ -17,6 +17,65 @@ interface SalesActivityData {
   createdByAgentId: number;
 }
 
+interface CustomerData {
+  name: string;
+  email?: string;
+  address?: string;
+}
+
+interface Customer {
+  code: number;
+  name: string;
+}
+
+/**
+ * Create a new customer
+ * @param customerData - The customer data to create
+ * @returns Promise with the response from the server
+ */
+export const createCustomer = async (customerData: CustomerData): Promise<{ success: boolean; customer?: Customer; error?: string }> => {
+  try {
+    console.log('ActivityService: Creating customer with data:', customerData);
+    
+    const response = await axios.post(
+      `${API_BASE_URL}/customers/create`,
+      customerData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    console.log('ActivityService: Customer creation response:', response.data);
+    
+    return {
+      success: true,
+      customer: response.data.customer,
+    };
+  } catch (error) {
+    console.error('ActivityService: Error creating customer:', error);
+    
+    if (axios.isAxiosError(error)) {
+      console.error('ActivityService: Axios error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || 'An error occurred while creating the customer',
+      };
+    }
+    
+    return {
+      success: false,
+      error: 'An unexpected error occurred',
+    };
+  }
+};
+
 /**
  * Submit sales activity data to the server
  * @param activityData - The sales activity data to submit

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useFormContext } from '../../context/FormContext';
+import { createCustomer } from '../../services/activityService';
 import axios from 'axios';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -15,9 +16,10 @@ const ShopAutocomplete: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { addUserMessage } = useChat();
-  const { handleUserInput, selectCustomer } = useFormContext();
+  const { addUserMessage, addErrorMessage } = useChat();
+  const { selectCustomer } = useFormContext();
   
   const debouncedSearchTerm = useDebounce(inputValue, 300);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,19 +54,51 @@ const ShopAutocomplete: React.FC = () => {
     
     addUserMessage(customer.name);
     selectCustomer(customer.code, customer.name);
-    // Removed handleUserInput call since selectCustomer now handles step advancement
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim().length < 3) return;
     
-    // If no suggestion selected but input provided
-    addUserMessage(inputValue);
-    handleUserInput(inputValue);
+    setIsSubmitting(true);
     
-    setInputValue('');
-    setSelectedSuggestion(null);
+    try {
+      // If a suggestion was selected, use that customer
+      if (selectedSuggestion !== null) {
+        const selectedCustomer = suggestions.find(c => c.code === selectedSuggestion);
+        if (selectedCustomer) {
+          addUserMessage(selectedCustomer.name);
+          selectCustomer(selectedCustomer.code, selectedCustomer.name);
+        }
+      } else {
+        // No suggestion selected, create a new customer
+        addUserMessage(inputValue);
+        
+        const result = await createCustomer({ name: inputValue.trim() });
+        
+        if (result.success && result.customer) {
+          // Successfully created new customer, proceed with form
+          selectCustomer(result.customer.code, result.customer.name);
+        } else {
+          // Error creating customer
+          addErrorMessage(result.error || 'Failed to create new customer. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Clear form
+      setInputValue('');
+      setSelectedSuggestion(null);
+      setSuggestions([]);
+      setShowSuggestions(false);
+      
+    } catch (error) {
+      console.error('Error handling shop submission:', error);
+      addErrorMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -74,17 +108,21 @@ const ShopAutocomplete: React.FC = () => {
           ref={inputRef}
           type="text"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setSelectedSuggestion(null); // Clear selection when typing
+          }}
           placeholder="Enter shop name (min 3 characters)"
           autoComplete="off"
           className="form-control"
+          disabled={isSubmitting}
         />
         <button 
           type="submit" 
-          disabled={inputValue.trim().length < 3 || isLoading}
+          disabled={inputValue.trim().length < 3 || isLoading || isSubmitting}
           className="btn btn-primary"
         >
-          {isLoading ? 'Loading...' : 'Submit'}
+          {isSubmitting ? 'Creating...' : isLoading ? 'Loading...' : 'Submit'}
         </button>
       </form>
       
@@ -100,6 +138,12 @@ const ShopAutocomplete: React.FC = () => {
             </li>
           ))}
         </ul>
+      )}
+      
+      {inputValue.trim().length >= 3 && !showSuggestions && !isLoading && (
+        <div className="new-customer-hint">
+          <small>Press Submit to create a new customer: "{inputValue}"</small>
+        </div>
       )}
     </div>
   );

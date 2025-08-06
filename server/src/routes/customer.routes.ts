@@ -1,7 +1,7 @@
 import express from 'express';
-import { searchCustomers } from '../controllers/customer.controller';
+import { searchCustomers, createCustomer } from '../controllers/customer.controller';
 import { validateRequest } from '../middleware/validateRequest';
-import { query } from 'express-validator';
+import { query, body } from 'express-validator';
 
 const router = express.Router();
 
@@ -29,6 +29,35 @@ router.get(
   ],
   validateRequest,
   searchCustomers
+);
+
+/**
+ * @route   POST /api/customers/create
+ * @desc    Create a new customer
+ * @access  Private
+ */
+router.post(
+  '/create',
+  [
+    body('name')
+      .notEmpty()
+      .withMessage('Customer name is required')
+      .isString()
+      .withMessage('Customer name must be a string')
+      .trim(),
+    body('email')
+      .optional()
+      .isEmail()
+      .withMessage('Email must be a valid email address')
+      .trim(),
+    body('address')
+      .optional()
+      .isString()
+      .withMessage('Address must be a string')
+      .trim()
+  ],
+  validateRequest,
+  createCustomer
 );
 
 export default router;

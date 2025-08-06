@@ -1,47 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateSalesActivity = exports.createSalesActivity = exports.forwardToWebhook = void 0;
-const axios_1 = __importDefault(require("axios"));
+exports.updateSalesActivity = exports.createSalesActivity = void 0;
 const supabase_1 = require("../services/supabase");
 const errorHandler_1 = require("../middleware/errorHandler");
 /**
- * Forward sales activity data to webhook
- * @route   POST /api/activities/webhook
- * @access  Private
- */
-const forwardToWebhook = async (req, res, next) => {
-    try {
-        const activityData = req.body;
-        console.log('Forwarding data to webhook:', activityData);
-        // Forward data to the webhook
-        const webhookResponse = await axios_1.default.post('https://n8n.masheduplab.com/webhook-test/9d9c745e-559a-472d-8369-0838bd201a3f', activityData, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        console.log('Webhook response:', webhookResponse.data);
-        // Return success response
-        return res.status(200).json({
-            success: true,
-            message: 'Data forwarded to webhook successfully',
-            webhookResponse: webhookResponse.data
-        });
-    }
-    catch (error) {
-        console.error('Webhook forwarding error:', error);
-        if (axios_1.default.isAxiosError(error)) {
-            const axiosError = error;
-            return next(new errorHandler_1.AppError(`Webhook error: ${axiosError.message}`, axiosError.response?.status || 500));
-        }
-        return next(new errorHandler_1.AppError('Server error during webhook forwarding', 500));
-    }
-};
-exports.forwardToWebhook = forwardToWebhook;
-/**
- * Create a new sales activity record (legacy - direct to Supabase)
+ * Create a new sales activity record
  * @route   POST /api/activities/create
  * @access  Private
  */

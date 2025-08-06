@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchCustomers = void 0;
+exports.createCustomer = exports.searchCustomers = void 0;
 const supabase_1 = require("../services/supabase");
 const errorHandler_1 = require("../middleware/errorHandler");
 /**
@@ -36,4 +36,59 @@ const searchCustomers = async (req, res, next) => {
     }
 };
 exports.searchCustomers = searchCustomers;
+/**
+ * Create a new customer
+ * @route   POST /api/customers/create
+ * @access  Private
+ */
+const createCustomer = async (req, res, next) => {
+    try {
+        const { name, email, address } = req.body;
+        // Check if customer with this name already exists
+        const { data: existingCustomer, error: checkError } = await supabase_1.supabase
+            .from('customer')
+            .select('code, name')
+            .eq('name', name)
+            .single();
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+            console.error('Supabase error checking existing customer:', checkError);
+            return next(new errorHandler_1.AppError('Database error checking existing customer', 500));
+        }
+        // If customer already exists, return the existing customer
+        if (existingCustomer) {
+            return res.status(200).json({
+                success: true,
+                message: 'Customer already exists',
+                customer: existingCustomer
+            });
+        }
+        // Create new customer with default email if not provided
+        const customerData = {
+            name: name,
+            email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`, // Default email
+            address: address || null
+        };
+        const { data: newCustomer, error: createError } = await supabase_1.supabase
+            .from('customer')
+            .insert([customerData])
+            .select('code, name')
+            .single();
+        // Handle database error
+        if (createError) {
+            console.error('Supabase error creating customer:', createError);
+            return next(new errorHandler_1.AppError('Database error during customer creation', 500));
+        }
+        // Return success response with the new customer
+        return res.status(201).json({
+            success: true,
+            message: 'Customer created successfully',
+            customer: newCustomer
+        });
+    }
+    catch (error) {
+        console.error('Customer creation error:', error);
+        return next(new errorHandler_1.AppError('Server error during customer creation', 500));
+    }
+};
+exports.createCustomer = createCustomer;
 //# sourceMappingURL=customer.controller.js.map
