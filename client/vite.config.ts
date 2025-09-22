@@ -6,10 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    allowedHosts: ['sreport.uptowntrading.co.th', 'localhost', '192.168.1.37'],
+    allowedHosts: ['sreport.uptowntrading.co.th', 'localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://sbe.uptowntrading.co.th',
         changeOrigin: true,
         secure: false,
       }
